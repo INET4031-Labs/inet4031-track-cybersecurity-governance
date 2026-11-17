@@ -1,6 +1,19 @@
 # Capstone Track: Cybersecurity and Governance
  
 **Final Sprint | Due before Final Presentations**
+
+> **New to this track? Start here.** The shared [INET 4031 Capstone Guide](https://github.com/INET4031-Labs/inet4031-capstone-guide) explains how to work through any track on your own. Feeling lost in the first few days is normal for a capstone: read the guide's Start Here page, run the Environment Checkpoint below, and take the next small step.
+>
+> | I need... | Go to |
+> |---|---|
+> | A reading order and what to do in my first session | [START-HERE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/START-HERE.md) |
+> | What to prioritize in Weeks 11 to 14 | [WEEKLY-PLAN](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/WEEKLY-PLAN.md) and the Sprint Timeline below |
+> | Plain-language explanations of this track's concepts | [CONCEPTS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/CONCEPTS.md) |
+> | A cheat sheet for each tool in this track | [TOOL-GUIDE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/TOOL-GUIDE.md) |
+> | Which file proves which success criterion | [EVIDENCE-CHECKLIST](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/EVIDENCE-CHECKLIST.md) |
+> | How the Week 13 rebuild works | [REBUILD](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/REBUILD.md) and the Rebuild section below |
+> | Help when something is broken | [GETTING-UNSTUCK](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/GETTING-UNSTUCK.md) |
+> | How to use AI tools well on this project | [USING-AI](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/USING-AI.md) |
  
 ## Overview
  
@@ -146,6 +159,43 @@ These are examples, not requirements. Combine them, change them, or ignore them.
  
 **Evidence-pipeline.** Build the one-command evidence collector first, with output going to a dated folder, and grow it as you add checks. Add a CI job that runs the cheap scans on every pull request. This demonstrates repeatability, which is what makes evidence credible to an external auditor.
  
+## Track Tips and Common Trip-Ups
+
+These notes come from where students usually get stuck. They do not change the success criteria; they help you reach them. Concepts are explained in [CONCEPTS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/CONCEPTS.md) and commands in [TOOL-GUIDE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/TOOL-GUIDE.md). If a flag here does not work on your installed version, check the tool's `--help`.
+
+**From control to evidence (criterion 1)**
+
+Each row in `controls.csv` links a rule, a yes/no test, and a saved file. A worked example using one of the README's own controls (column names are a suggestion):
+
+```csv
+id,area,control,test,expected,status,evidence
+C-01,Kubernetes workload,Flask containers do not run as root,Read runAsUser and runAsNonRoot from the Flask Deployment spec,runAsUser 1000 and runAsNonRoot true,Pass,evidence/2026-12-01-1030/c01-flask-securitycontext.txt
+```
+
+The evidence file holds the command and its output, for example `kubectl get deploy <flask deployment> -o jsonpath='{.spec.template.spec.securityContext}{"\n"}{.spec.template.spec.containers[*].securityContext}'`. Write the expected result before you run the test. A `Fail` you can explain is worth more than a `Pass` you cannot prove.
+
+**Triage (criterion 2)**
+
+- For each HIGH or CRITICAL finding, decide: **fix** (a fix exists and is cheap), **accept** (no fix, or the cost outweighs the risk; goes in the risk register with an owner), or **false positive** (write why).
+- The cheapest image fix is often a newer base image tag. Rebuild with your team tag, import, rescan, and save both JSON reports.
+- Count findings from a JSON report with jq, for example `jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH" or .Severity=="CRITICAL")] | length' report.json`. Trivy's `--ignore-unfixed` helps triage, but do not use it to hide findings in your before report.
+
+**Secrets (criterion 3)**
+
+- gitleaks changed its subcommands between versions. Run `gitleaks --help` on the installed version, scan the repo root so the full git history is included, write the report to a file, and use the redact option so no secret value lands in the report.
+
+**Access and network (criterion 4)**
+
+- Test a ServiceAccount, not yourself: `kubectl auth can-i get secrets --as=system:serviceaccount:default:flask-app`. Without `--as`, you are checking your own permissions.
+- Write each prediction before you run the check, then save predicted and actual side by side.
+
+**The evidence script (criterion 5)**
+
+- Write every run to a new folder, for example `evidence/$(date +%Y-%m-%d-%H%M)/`.
+- Scanners exit with a non-zero code when they find something. If your script uses `set -e`, one finding stops the whole run. Capture each scanner's exit code instead of letting it end the script.
+- Time it with `time ./collect-evidence.sh` and save that output too.
+- Risk score is likelihood times impact (1 to 25). Owners come from the Harborlight cast.
+
 ## Rules of the Road
  
 - **Scan only what is yours.** Your own image, your own repo, your own cluster, your own ports. No nmap, port sweeps, or probing of the VM, the campus network, or another team's ports or cluster. Trivy, kube-score, checkov, and gitleaks read files and images you point them at; keep it that way.
@@ -163,6 +213,17 @@ These are examples, not requirements. Combine them, change them, or ignore them.
 - **Be honest in the evidence.** A `Fail` with a clear explanation is better than a `Pass` you cannot prove. Auditors check.
 ## How to Run This Sprint
  
+### Sprint Timeline (Weeks 11 to 14)
+
+Both sections follow the same four weeks. The planning steps below still apply; this table says where your work should be at the end of each week. The full plan is in [WEEKLY-PLAN](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/WEEKLY-PLAN.md).
+
+| Week | By the end of the week |
+|---|---|
+| 11 Kickoff | Environment Checkpoint saved. Tools verified. First scans of your image, repo, and manifests saved. Control matrix drafted with at least 8 rows. QA test cases drafted. |
+| 12 Build | Remediation with before and after scans. RBAC and NetworkPolicy tests with written predictions. Risk register started. Control matrix at 15 rows, each pointing to evidence. |
+| 13 Consolidate and rebuild | Three policies, evidence script running in under 5 minutes, RUNBOOK and ARCHITECTURE, rebuild, and gap log. |
+| 14 Present | Rebuild presentation (live on the Shared VM, recorded on the Local VM), running the evidence script and walking one control row to its evidence. |
+
 ### Shared VM (RHEL, teams)
  
 **Step 1.** Sprint planning. Turn the five success criteria into GitHub issues on your project board. Split big ones (for example, one issue per scanner).
@@ -178,9 +239,27 @@ These are examples, not requirements. Combine them, change them, or ignore them.
  
 ### Local VM (Ubuntu, individual)
  
-- **Week 1 milestone:** tools installed and verified, environment checkpoint saved, scans run on image, repo, and manifests, control matrix drafted (at least 8 rows), your test cases written in `docs/qa-report-final.md`.
-- **Week 2 milestone:** remediation and rescan, RBAC and NetworkPolicy tests, risk register, policies, evidence script, runbook, architecture diagram, demo rehearsal. Optionally run Lynis on your own VM and add a short note on how host findings would appear in the matrix.
+- **Week 11 milestone:** tools installed and verified, environment checkpoint saved, scans run on image, repo, and manifests, control matrix drafted (at least 8 rows), your test cases written in `docs/qa-report-final.md`.
+- **Week 12 milestone:** remediation and rescan, RBAC and NetworkPolicy tests, risk register, policies, evidence script, runbook, architecture diagram, demo rehearsal. Optionally run Lynis on your own VM and add a short note on how host findings would appear in the matrix.
+- **Week 13:** consolidate your documents, then rebuild on a new VirtualBox VM and keep a gap log (see the Rebuild section).
+- **Week 14:** recorded presentation of your rebuild.
 - You write your own test cases in the same QA file and sign as both author and tester. A short reflection (the "Individual Reflection" section of the retrospective file) replaces the team retrospective.
+
+## Rebuild (Weeks 13 and 14)
+
+Your work has to come back up from your repository alone. Start from a clean VM, clone your repo, and follow only your README, RUNBOOK, and scripts. Every step that fails or that your README forgot is a gap: write it in `capstone/cybersecurity-governance/REBUILD-GAPS.md`, fix it by pull request, and update the README. The full contract, the "what lives outside git" checklist, and the gap log template are in [REBUILD](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/REBUILD.md).
+
+> **Shared VM (RHEL, teams):** In Week 13 your team takes a turn in a queue to test the rebuild on a separate VM, which is wiped between teams. In Week 14 you present live: the tools are pre-installed, and your team clones the repo and brings the app up from your README and setup instructions. There is no sudo on the rebuild or presentation VM, so every step your README asks someone to run must work without it. Your Ansible playbooks and any [PREDICT ONLY] code stay reference-only: do not run them, and make sure bringing the app up does not depend on them. Recreate your k3d cluster with the same `--subnet 100.97.<team>.0/24` flag you used before.
+
+> **Local VM (Ubuntu, individual):** In Week 13 create a new VM in VirtualBox using the same steps you used for your original VM, clone your repo, and follow your README. Keep the original VM until the rebuild works. In Week 14 you present a recording of the rebuild.
+
+**Proof of life for this track:** the evidence script produces a new timestamped folder, and the statuses in `controls.csv` still match what the new evidence shows.
+
+**Gaps this track usually finds:**
+- The rebuilt Flask image does not exist on the new VM, so image scans fail until the build and import steps are documented.
+- Trivy needs to download its vulnerability database on first run, which only works from the host.
+- The evidence script assumes tools, paths, or a kube context that only existed on the old VM.
+
 ## Deliverables
  
 - Implementation committed under `capstone/cybersecurity-governance/` in your repo (merged via PR on the RHEL section)
@@ -189,8 +268,10 @@ These are examples, not requirements. Combine them, change them, or ignore them.
 - `capstone/cybersecurity-governance/ARCHITECTURE.md` with an architecture diagram (Mermaid OK) showing VM, cluster, app, and new components
 - A "How to run this" section added to the repo's top-level README so someone who clones the repo can bring the track implementation up
 - `docs/qa-report-final.md` with your own test cases and results
+- `capstone/cybersecurity-governance/REBUILD-GAPS.md`: the gap log from your Week 13 rebuild (template in [REBUILD](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/REBUILD.md))
 - Shared VM: `docs/final-sprint-retrospective.md`; Local VM: a short reflection (the "Individual Reflection" section of the retrospective file)
 - Final presentation/demo: 8-10 minutes for a team on RHEL (5 minutes for an individual on the Local VM). Show the demo from the command line: run the evidence script live, walk through one control row from the matrix to its evidence file, show a before/after scan, and explain one accepted risk in the risk register.
+- Week 14 rebuild presentation: live on the Shared VM (clone the repo and bring the app up from your README), recorded on the Local VM. See the Rebuild section.
 Track-specific items:
 - `capstone/cybersecurity-governance/controls.csv` (control matrix)
 - `capstone/cybersecurity-governance/risk-register.md`
@@ -207,3 +288,7 @@ Track-specific items:
 ## Getting Help
  
 Clarifications go to the TA or professor. There is no wiki for this track, so ask early rather than guessing what a requirement means.
+
+**Before you ask:** work through [GETTING-UNSTUCK](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/GETTING-UNSTUCK.md) for about 30 minutes, then ask with the command, its full output, what you expected, and what you tried.
+
+**Using AI:** AI assistants are welcome as a tool for learning how these tools work and how enterprises use them. Do not rely on them to produce your work: understand every line you commit, verify AI answers against the tool's documentation, never paste AI output into evidence files, and never paste secrets into an AI tool. See [USING-AI](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/USING-AI.md).
