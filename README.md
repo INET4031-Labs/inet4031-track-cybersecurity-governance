@@ -7,6 +7,8 @@
 > | I need... | Go to |
 > |---|---|
 > | A reading order and what to do in my first session | [START-HERE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/START-HERE.md) |
+> | What I may change in the app, and how to propose my own criterion | [MAKE-IT-YOURS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/MAKE-IT-YOURS.md) |
+> | Local VM: how my k3s and OpenTofu setup differs from this README | [LOCAL-VM](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/LOCAL-VM.md) |
 > | What to prioritize in Weeks 11 to 14 | [WEEKLY-PLAN](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/WEEKLY-PLAN.md) and the Sprint Timeline below |
 > | Plain-language explanations of this track's concepts | [CONCEPTS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/CONCEPTS.md) |
 > | A cheat sheet for each tool in this track | [TOOL-GUIDE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/TOOL-GUIDE.md) |
@@ -14,6 +16,8 @@
 > | How the Week 13 rebuild works | [REBUILD](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/REBUILD.md) and the Rebuild section below |
 > | Help when something is broken | [GETTING-UNSTUCK](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/GETTING-UNSTUCK.md) |
 > | How to use AI tools well on this project | [USING-AI](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/USING-AI.md) |
+>
+> **Local VM students:** much of this README describes the Shared VM setup (k3d, team numbers, `main`, `kubectl apply`). Your setup is a single-node k3s cluster that changes through OpenTofu and your deploy script. Look for the **Local VM** notes in each section, and keep [LOCAL-VM](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/LOCAL-VM.md) open while you work.
  
 ## Overview
  
@@ -57,6 +61,15 @@ How you get there is up to you.
 - Week 6 complete: GitHub Actions CI with the Trivy step, and branch protection on `main`
 - Week 5 complete: Prometheus running in the `monitoring` namespace, and `week-5/pq.sh` works
 - Week 2 Compose stack and Week 3 k3d cluster running with the Flask Deployment using image `week-2-flask`
+
+> **Local VM (Ubuntu, individual):** the weeks above are Shared VM weeks. Your equivalents:
+>
+> - **Week 8 (security hardening):** `web` runs as UID 10001 with `run_as_non_root`, no privilege escalation, all capabilities dropped, and CPU and memory limits; `db` has limits; the Deploy gate's `security scan` job runs Checkov on `week-5/`; the `protect-master` ruleset requires all three gate jobs.
+> - **Week 9:** the NetworkPolicy is now `db-clients`, which lets only `web` and `db-exporter` reach `db` on 5432. There is **no default-deny** policy and no separate ServiceAccount: `web` runs as the `default` ServiceAccount in `default`.
+> - **Week 6:** Prometheus in `monitoring`, and `week-6/pq.sh`.
+> - **Weeks 4 and 5:** the k3s node, and `web` and `db` defined in `week-5/*.tf` with the image `week-4-web:<tag>`.
+>
+> Your repository is public (you checked what it exposes in Week 7), which makes criterion 3 a real audit question for you.
 ### Environment Checkpoint
  
 Run these and save the output. They confirm the app, cluster, and Prometheus are healthy before you start scanning.
@@ -79,6 +92,21 @@ kubectl port-forward -n monitoring svc/prometheus-server <your Prometheus port>:
 ```
  
 Then in another terminal, run `week-5/pq.sh` with your `PROM_URL` and confirm it returns a result. If anything is not healthy, fix that first. A scan of a broken system produces meaningless evidence.
+
+**Local VM:** your Compose stack has been stopped since Week 4, so use this block instead:
+
+```bash
+kubectl get nodes
+kubectl get pods
+kubectl get pods -n monitoring
+kubectl get networkpolicy
+kubectl get serviceaccount default
+curl -s http://$(kubectl get service web -o jsonpath='{.spec.clusterIP}'):8080/health
+gh api repos/{owner}/{repo}/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
+```
+
+Use `kubectl port-forward --namespace monitoring service/prometheus-server 9090:80` and `./week-6/pq.sh 'up'` for Prometheus.
+
  
 ## Team Port Assignments
  
@@ -86,7 +114,7 @@ This track needs no new ports. Use the ports you already have:
  
 > **Shared VM (RHEL, teams):** Compose port is 8080 + team number, the k3d load balancer is 8090 + team number (8091-8097 for teams 1-7), and your Prometheus port-forward is 9090 + team number. Use only your own ports.
  
-> **Local VM (Ubuntu, individual):** Browser at `http://localhost:8081`. Same ports otherwise, with no team number.
+> **Local VM (Ubuntu, individual):** There is no team number. The app is on port 8080 (the `web` Service address, or `kubectl port-forward --address 0.0.0.0 service/web 8080:8080` and http://localhost:8080 in your browser), and Prometheus on 9090.
  
 ## Tools Available
  
@@ -189,6 +217,14 @@ The evidence file holds the command and its output, for example `kubectl get dep
 - Test a ServiceAccount, not yourself: `kubectl auth can-i get secrets --as=system:serviceaccount:default:flask-app`. Without `--as`, you are checking your own permissions.
 - Write each prediction before you run the check, then save predicted and actual side by side.
 
+**Local VM notes (criteria 2 and 4)**
+
+- **Your identities for criterion 4.** There is no `flask-app` ServiceAccount. Test the account your `web` pods actually use, `system:serviceaccount:default:default`, plus one other, such as Prometheus's `system:serviceaccount:monitoring:prometheus-server` (check the name with `kubectl get serviceaccount -n monitoring`). Creating a dedicated ServiceAccount for `web` in `week-5/`, with its token not mounted, is a good remediation to record.
+- **Your NetworkPolicy tests.** With no default-deny, the policy to test is `db-clients`. Predict, then test, at least two connections that should be blocked: a debug pod in `default` connecting to `db` on 5432, and a pod in another namespace doing the same. Then ask what a pod labeled `app: web` that is not your app would be allowed to do, and decide whether that belongs in the risk register. Adding a default-deny policy through `week-5/` is a valid remediation, but plan which allows `web`, `db-exporter`, and Prometheus scraping need first.
+- **Scanning your manifests.** Your manifests are OpenTofu files, not YAML. `checkov -d week-5 --framework terraform` and `trivy config week-5` read them directly. kube-score needs YAML, so feed it the live objects: `kubectl get deploy web db -o yaml | kube-score score -`.
+- **Your image** is `week-4-web:<the tag in week-5/web.tf>`. Remediation means a new tag, imported into k3s and deployed through a pull request; see [MAKE-IT-YOURS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/MAKE-IT-YOURS.md) under "Shipping an app change".
+- **You already have controls with evidence.** Your Week 8 gate and ruleset are controls; `gh pr checks` on a past red pull request and the ruleset JSON are their evidence.
+
 **The evidence script (criterion 5)**
 
 - Write every run to a new folder, for example `evidence/$(date +%Y-%m-%d-%H%M)/`.
@@ -202,15 +238,30 @@ The evidence file holds the command and its output, for example `kubectl get dep
 - **Never use sudo on the shared VM.** Run k3d, kubectl, and helm without sudo (`sudo` cannot find `/usr/local/bin` tools anyway). Scanners also work without root.
 - **No Lynis on the shared VM.** It audits the host and would measure (and could disturb) every team's work. Use it only on your own Local VM, as a normal user.
 - **Real secrets stay out of the repo and the docs.** If gitleaks finds a real credential, tell your TA or professor and rotate it. In your reports, redact the value. For testing the scanner, use an obviously fake value in a scratch folder outside your repo, never in a commit.
-- **Images are tagged `<name>:team<N>`** (for example `week-2-flask:team3`) and imported with `k3d image import <image>:team<N> -c <your cluster name>`. Local VM: `:local` is fine, but still import with `-c`.
+- **Images are tagged `<name>:team<N>`** (for example `week-2-flask:team3`) and imported with `k3d image import <image>:team<N> -c <your cluster name>`. Local VM: use a new version tag such as `week-4-web:v3`, imported with `docker save` and `sudo k3s ctr images import` (there is no k3d).
 - **Builds use host networking.** The campus firewall blocks container addresses from the internet, so build with `docker build --network host -t <image>:team<N> <dir>`. Do not use `build: network:` in Compose, and never disable firewalld or edit `/etc/docker/daemon.json`.
 - **File permissions:** the VM uses `umask 077`, so edited files become mode 600. If a Dockerfile switches to a non-root user, use `COPY --chmod=644` (or `chmod 644` the files before building), or the container will not be able to read them.
 - **Port-forwards run in the foreground** in their own terminal, never backgrounded with `&`. If one gets stuck: `pkill -u $USER -f "kubectl port-forward"`.
 - **Any pod you add needs a NetworkPolicy allow** if it receives traffic; the default-deny will block it otherwise. Every pod you deploy needs memory `requests` and `limits`. A throwaway test pod that only sends traffic does not need an ingress allow, but still needs memory limits and must be deleted afterward.
 - **Memory budget:** keep anything you add to the cluster under 128Mi total. Most of this track runs as CLI tools, not pods. Check with `kubectl top pods -A` and `free -h`. If `kubectl top` errors, tell the TA, and use `kubectl describe pod` (requests and limits) with `free -h` in the meantime.
-- **Infrastructure code:** on the shared VM, do not run `tofu plan`, `tofu apply`, or `ansible-playbook`. If you change `infrastructure/flask.tf`, mark the step **[PREDICT ONLY]**, write your prediction in the Google Doc, and apply the live change with `kubectl`. Scanning the `.tf` file with checkov is fine; it only reads the file. Local VM students may run them.
+- **Infrastructure code:** on the shared VM, do not run `tofu plan`, `tofu apply`, or `ansible-playbook`. If you change `infrastructure/flask.tf`, mark the step **[PREDICT ONLY]**, write your prediction in the Google Doc, and apply the live change with `kubectl`. Scanning the `.tf` file with checkov is fine; it only reads the file. Local VM students: your OpenTofu lives in `week-5/` and runs through your deploy pipeline; see the Local VM rules below.
 - **Git on the shared VM:** `git switch -c <branch>`, `git push -u origin <branch>`, open a PR, wait for `build-and-push`, then merge. Never push to `main`.
 - **Be honest in the evidence.** A `Fail` with a clear explanation is better than a `Pass` you cannot prove. Auditors check.
+
+### Local VM (Ubuntu, individual) rules
+
+The rules above that mention other teams, team numbers, k3d, `--network host`, firewalld, `/etc/docker/daemon.json`, `umask 077`, or [PREDICT ONLY] describe the Shared VM. On your own VM these apply instead:
+
+- **Change the cluster through OpenTofu.** Anything that should last goes in `week-5/*.tf`, through a pull request, the Deploy gate, and `week-7/deploy.sh`. Throwaway test pods may use `kubectl apply`, and you delete them afterward. A change made with `kubectl` to an object OpenTofu manages is undone by the next deploy.
+- **The gate checks your additions.** Every container you add in `week-5/` needs CPU and memory requests and limits and must not allow privilege escalation, or the `security scan` job fails and the ruleset blocks the merge.
+- **New image, new tag.** Build a new tag (for example `:v1`, `:v2`), import it with `docker save` and `sudo k3s ctr images import` **before** the pull request that uses it, and never overwrite the tag that is running.
+- **`master` and `protect-master` stay.** Work on branches and merge through pull requests. Do not delete the ruleset, remove its checks, or add a bypass.
+- **No default-deny.** Only the `db` pods are protected (by `db-clients`). A pod you add accepts traffic from anywhere until a NetworkPolicy selects it.
+- **sudo** is for package installs, `sudo install` of single binaries, and `sudo k3s ctr`. Run `kubectl`, `helm`, `tofu`, and `k6` as your normal user.
+- **Memory budget still applies:** keep anything you add to the cluster under 128Mi total.
+- **Lynis is allowed on your own VM,** as a normal user, as described in Tools Available.
+- **Remediations ship through the pipeline.** A fix to `week-5/*.tf` or a new image tag goes through a pull request, the gate, and `deploy.sh`, so your evidence shows the gate passing on the fix.
+
 ## How to Run This Sprint
  
 ### Sprint Timeline (Weeks 11 to 14)
@@ -239,9 +290,11 @@ Both sections follow the same four weeks. The planning steps below still apply; 
  
 ### Local VM (Ubuntu, individual)
  
-- **Week 11 milestone:** tools installed and verified, environment checkpoint saved, scans run on image, repo, and manifests, control matrix drafted (at least 8 rows), your test cases written in `docs/qa-report-final.md`.
-- **Week 12 milestone:** remediation and rescan, RBAC and NetworkPolicy tests, risk register, policies, evidence script, runbook, architecture diagram, demo rehearsal. Optionally run Lynis on your own VM and add a short note on how host findings would appear in the matrix.
-- **Week 13:** consolidate your documents, then rebuild on a new VirtualBox VM and keep a gap log (see the Rebuild section).
+You follow the same Sprint Timeline as the Shared VM teams, alone.
+
+- **Week 11 milestone:** tools installed and verified, Environment Checkpoint saved, first scans of your image, repo, and OpenTofu files saved, control matrix drafted (at least 8 rows), your test cases written in `docs/qa-report-final.md`.
+- **Week 12 milestone:** remediation shipped through the pipeline with before and after scans, RBAC and NetworkPolicy tests with written predictions, risk register started, control matrix at 15 rows with evidence. Optionally run Lynis on your own VM and add a short note on how host findings would appear in the matrix.
+- **Week 13:** three policies, evidence script running in under 5 minutes, RUNBOOK and ARCHITECTURE, then rebuild on a new VirtualBox VM and keep a gap log (see the Rebuild section).
 - **Week 14:** recorded presentation of your rebuild.
 - You write your own test cases in the same QA file and sign as both author and tester. A short reflection (the "Individual Reflection" section of the retrospective file) replaces the team retrospective.
 
@@ -251,7 +304,7 @@ Your work has to come back up from your repository alone. Start from a clean VM,
 
 > **Shared VM (RHEL, teams):** In Week 13 your team takes a turn in a queue to test the rebuild on a separate VM, which is wiped between teams. In Week 14 you present live: the tools are pre-installed, and your team clones the repo and brings the app up from your README and setup instructions. There is no sudo on the rebuild or presentation VM, so every step your README asks someone to run must work without it. Your Ansible playbooks and any [PREDICT ONLY] code stay reference-only: do not run them, and make sure bringing the app up does not depend on them. Recreate your k3d cluster with the same `--subnet 100.97.<team>.0/24` flag you used before.
 
-> **Local VM (Ubuntu, individual):** In Week 13 create a new VM in VirtualBox using the same steps you used for your original VM, clone your repo, and follow your README. Keep the original VM until the rebuild works. In Week 14 you present a recording of the rebuild.
+> **Local VM (Ubuntu, individual):** In Week 13 create a new VM in VirtualBox using the same steps you used for your original VM, clone your repo, and follow your README. Keep the original VM until the rebuild works. In Week 14 you present a recording of the rebuild. Start from the "Rebuild on a fresh VM" sections you wrote in your Week 7, 8, and 9 READMEs (k3s, OpenTofu variables, image import, deploy and backup cron lines), then add everything this track added. The full Local VM order is in [REBUILD](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/REBUILD.md). You have sudo on your own VM; every step that needs it must be in your README.
 
 **Proof of life for this track:** the evidence script produces a new timestamped folder, and the statuses in `controls.csv` still match what the new evidence shows.
 
@@ -259,6 +312,7 @@ Your work has to come back up from your repository alone. Start from a clean VM,
 - The rebuilt Flask image does not exist on the new VM, so image scans fail until the build and import steps are documented.
 - Trivy needs to download its vulnerability database on first run, which only works from the host.
 - The evidence script assumes tools, paths, or a kube context that only existed on the old VM.
+- Local VM: the remediated image tag was imported into k3s on the old VM only, so the first deploy on the new VM cannot start `web` until the build and import steps run.
 
 ## Deliverables
  
