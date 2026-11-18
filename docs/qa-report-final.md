@@ -1,160 +1,200 @@
-# QA Report: Final Sprint — Cybersecurity and Governance
+# QA Report: Final Sprint, Cybersecurity and Governance
 
-**Owned by:** QA (Local VM: Owned by: you)
+| | |
+|---|---|
+| **Section** | Shared VM (team ___) / Local VM |
+| **Test author(s)** | ______________________ (Shared VM: QA) |
+| **Tester** | ______________________ (Local VM: you are author and tester) |
+| **Commit tested** | `git rev-parse --short HEAD` = ________ |
+| **Dates** | Cases written: ________ Cases run: ________ |
 
-This report documents the results of validation testing at the end of the final sprint. QA writes the test cases below before the implementation is finished, then runs them independently and records what actually happened. Add more checks as needed; six empty slots are provided to start.
+## How to use this report
 
-Note: Local VM students sign as both author and tester.
+1. **Write the test cases first,** in Week 11, before the work they test exists. A test written after the fact tends to test what was built instead of what was asked for.
+2. **Write the expected result before you run anything.** If the actual result surprises you, that is a finding, not a typo to fix.
+3. **Paste real output or point to an evidence file.** "Works" is not a result. A command and its output is.
+4. **Cover every success criterion with at least one case,** and include at least one negative test (something that must fail or be blocked) and the rebuild proof of life.
+5. **Re-run every case in Week 13** on the rebuilt VM and update the status. A case that passed only on the old VM is a rebuild gap.
 
----
-
-## Validation Check Results
-
-### Check 1: TODO: <name your check>
-
-**Test:** TODO
-
-**Expected:** TODO
-
-**Actual Result:**
-```
-TODO
-```
-
-**Status:** TODO: [ ] Pass [ ] Fail
-
-**Notes:**
+If your team replaced a criterion through [MAKE-IT-YOURS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/MAKE-IT-YOURS.md), test the replacement instead, and link the approved design brief.
 
 ---
 
-### Check 2: TODO: <name your check>
+## Test Cases
 
-**Test:** TODO
+Copy the block for each new case. Six slots are a starting point, not a limit.
 
-**Expected:** TODO
+<details>
+<summary>Example of a filled-in case (delete when you start)</summary>
 
-**Actual Result:**
-```
-TODO
-```
+**TC-00: Web containers do not run as root**
 
-**Status:** TODO: [ ] Pass [ ] Fail
+| Field | Value |
+|---|---|
+| Criterion | 1 |
+| Steps | Read the security context of the running `web` (Local VM) or Flask (Shared VM) Deployment with `kubectl get deploy ... -o jsonpath=...` |
+| Expected (written before running) | `runAsNonRoot` is true and the user ID is not 0; matches the C-01 row in `controls.csv` |
+| Actual | See `capstone/cybersecurity-governance/evidence/<file>`; summary: ... |
+| Status | Pass |
+| Run on | Original VM, YYYY-MM-DD; rebuilt VM, YYYY-MM-DD |
 
-**Notes:**
+</details>
+
+### TC-01: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
+
+### TC-02: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
+
+### TC-03: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
+
+### TC-04: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
+
+### TC-05: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
+
+### TC-06: (name your check)
+
+| Field | Value |
+|---|---|
+| Criterion | |
+| Type | Positive / Negative (must fail or be blocked) / Rebuild |
+| Preconditions | |
+| Steps (exact commands) | |
+| Expected (written before running) | |
+| Actual (output or evidence path) | |
+| Status | [ ] Pass [ ] Fail [ ] Blocked |
+| Run on | Original VM: ____ Rebuilt VM: ____ |
+| Notes | |
 
 ---
 
-### Check 3: TODO: <name your check>
+## Success Criteria Verification
 
-**Test:** TODO
+Evidence paths are relative to `capstone/cybersecurity-governance/` and come from [EVIDENCE-CHECKLIST](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/EVIDENCE-CHECKLIST.md). Change a path if your file is named differently.
 
-**Expected:** TODO
-
-**Actual Result:**
-```
-TODO
-```
-
-**Status:** TODO: [ ] Pass [ ] Fail
-
-**Notes:**
+| Criterion | Evidence | Test case(s) | Met? |
+|---|---|---|---|
+| 1. Control matrix with 15+ controls, each with status and an evidence path | `controls.csv` | | [ ] Yes [ ] No |
+| 2. Image and manifest scans, with HIGH/CRITICAL image findings reduced (before and after) | `evidence/trivy-image-before.json`, `evidence/trivy-image-after.json`, manifest scans | | [ ] Yes [ ] No |
+| 3. Full-history gitleaks report with 0 unresolved findings | `evidence/gitleaks-report.json` | | [ ] Yes [ ] No |
+| 4. 8+ `kubectl auth can-i` checks and 2+ blocked NetworkPolicy tests, all matching written predictions | `evidence/rbac-checks.txt`, `evidence/netpol-tests.txt` | | [ ] Yes [ ] No |
+| 5. Risk register (8+ risks), 3 one-page policies, evidence script under 5 minutes | `risk-register.md`, `policies/`, the script and one timestamped output folder | | [ ] Yes [ ] No |
 
 ---
 
-### Check 4: TODO: <name your check>
+## Rebuild Verification (Week 13)
 
-**Test:** TODO
-
-**Expected:** TODO
-
-**Actual Result:**
-```
-TODO
-```
-
-**Status:** TODO: [ ] Pass [ ] Fail
-
-**Notes:**
-
----
-
-### Check 5: TODO: <name your check>
-
-**Test:** TODO
-
-**Expected:** TODO
-
-**Actual Result:**
-```
-TODO
-```
-
-**Status:** TODO: [ ] Pass [ ] Fail
-
-**Notes:**
-
----
-
-### Check 6: TODO: <name your check>
-
-**Test:** TODO
-
-**Expected:** TODO
-
-**Actual Result:**
-```
-TODO
-```
-
-**Status:** TODO: [ ] Pass [ ] Fail
-
-**Notes:**
-
----
-
-## Acceptance Criteria Verification
-
-TODO: [ ] Success criterion 1 met (copy the criterion text here and cite your evidence file)
-TODO: [ ] Success criterion 2 met (copy the criterion text here and cite your evidence file)
-TODO: [ ] Success criterion 3 met (copy the criterion text here and cite your evidence file)
-TODO: [ ] Success criterion 4 met (copy the criterion text here and cite your evidence file)
-TODO: [ ] Success criterion 5 met (copy the criterion text here and cite your evidence file)
+| Check | Result |
+|---|---|
+| Rebuild date and VM (new VirtualBox VM, or Shared VM queue slot) | |
+| Started from commit | |
+| Proof of life, Shared VM: The evidence script produces a new timestamped folder; the statuses in `controls.csv` still match what the new evidence shows | [ ] Pass [ ] Fail |
+| Proof of life, Local VM: Same as the Shared VM | [ ] Pass [ ] Fail |
+| Every app change came back (schema, routes, services, images) | [ ] Yes [ ] No |
+| Gaps logged in `capstone/cybersecurity-governance/REBUILD-GAPS.md` and fixed by pull request | ___ gaps found, ___ fixed |
+| All test cases above re-run on the rebuilt VM | [ ] Yes [ ] No |
 
 ---
 
 ## Deliverables Verification
 
-TODO: [ ] Implementation committed under `capstone/cybersecurity-governance/` (merged via PR on the RHEL section)
-TODO: [ ] `capstone/cybersecurity-governance/RUNBOOK.md` present
-TODO: [ ] `capstone/cybersecurity-governance/ARCHITECTURE.md` present with an architecture diagram
-TODO: [ ] "How to run this" section added to the top-level README
-TODO: [ ] `docs/qa-report-final.md` completed with own test cases and results
-TODO: [ ] Shared VM: `docs/final-sprint-retrospective.md` completed; Local VM: Individual Reflection completed
-TODO: [ ] Final presentation/demo prepared (8-10 min team, 5 min individual)
-TODO: [ ] Track-specific items present (control matrix, risk register, policies, evidence folder, evidence script)
+- [ ] Implementation committed under `capstone/cybersecurity-governance/` (merged by pull request)
+- [ ] `capstone/cybersecurity-governance/RUNBOOK.md`: operate, check, and recover
+- [ ] `capstone/cybersecurity-governance/TOOL-VERSIONS.txt` (and `requirements.txt` for Python packages)
+- [ ] `capstone/cybersecurity-governance/ARCHITECTURE.md` with a diagram and a "What we changed and why" section
+- [ ] "How to run this" section in the top-level README
+- [ ] `capstone/cybersecurity-governance/REBUILD-GAPS.md` from the Week 13 rebuild
+- [ ] This QA report, with every case run and signed
+- [ ] Shared VM: `docs/final-sprint-retrospective.md`. Local VM: the Individual Reflection section
+- [ ] `capstone/cybersecurity-governance/DESIGN-BRIEF.md`, only if a criterion was replaced, with the approval noted
+- [ ] Discussion answers in the Google Doc
+- [ ] Final presentation and Week 14 rebuild presentation prepared (live on the Shared VM, recorded on the Local VM)
+- [ ] Track-specific: `controls.csv`
+- [ ] Track-specific: `risk-register.md` and `policies/`
+- [ ] Track-specific: The evidence script and at least one timestamped evidence folder
 
 ---
 
 ## Rework Required
 
-**Issues Found:**
-```
-TODO: List any failures here
-```
-
-**Rework Plan:**
-```
-TODO: For each failure, describe the steps to fix it and who will do the work
-```
-
-**Re-validation Date:** TODO: When will rework be complete?
+| # | Failed case or criterion | What is wrong | Fix and owner | Re-test date | Re-test result |
+|---|---|---|---|---|---|
+| 1 | | | | | |
+| 2 | | | | | |
 
 ---
 
 ## Sign-Off
 
-**QA Name:** ______________________
-**Date Signed:** ______________________
-**Overall Status:** TODO: [ ] All Criteria Met [ ] Rework Required
+**Overall status:** [ ] All criteria met [ ] Met with documented exceptions [ ] Rework required
 
-**Notes:** Any final observations about the sprint's technical quality and team coordination.
+**Exceptions** (criteria not met, and why):
+
+```
+
+```
+
+| Role | Name | Date |
+|---|---|---|
+| Test author | | |
+| Tester (Local VM: same person) | | |
+
+**Notes:** observations about technical quality and, on the Shared VM, team coordination.
