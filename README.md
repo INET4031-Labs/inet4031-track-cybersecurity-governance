@@ -191,6 +191,21 @@ These are examples, not requirements. Combine them, change them, or ignore them.
 
 These notes come from where students usually get stuck. They do not change the success criteria; they help you reach them. Concepts are explained in [CONCEPTS](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/CONCEPTS.md) and commands in [TOOL-GUIDE](https://github.com/INET4031-Labs/inet4031-capstone-guide/blob/main/TOOL-GUIDE.md). If a flag here does not work on your installed version, check the tool's `--help`.
 
+**Choosing your controls (criterion 1)**
+
+The CIS Benchmarks for Kubernetes and Docker run to hundreds of pages. Use them as a menu, not a checklist. Criterion 1 already names six areas; aim for two or three controls in each, and keep only controls you can answer yes or no with one command or one file. One example per area to start from (find the rest yourself):
+
+| Area | Example control |
+|---|---|
+| Image | No CRITICAL vulnerability that has a fix available |
+| Repo | No secret anywhere in git history |
+| Kubernetes workload | Containers do not run as root |
+| RBAC | The app's ServiceAccount cannot read Secrets |
+| Network | Only the app tier can reach the database |
+| Process | Every change to the default branch arrives through a pull request with passing checks |
+
+A control you cannot test yet is still useful: write it, mark it `Fail` or `Accepted Risk`, and say why.
+
 **From control to evidence (criterion 1)**
 
 Each row in `controls.csv` links a rule, a yes/no test, and a saved file. A worked example using one of the README's own controls (column names are a suggestion):
@@ -231,6 +246,20 @@ The evidence file holds the command and its output, for example `kubectl get dep
 - Scanners exit with a non-zero code when they find something. If your script uses `set -e`, one finding stops the whole run. Capture each scanner's exit code instead of letting it end the script.
 - Time it with `time ./collect-evidence.sh` and save that output too.
 - Risk score is likelihood times impact (1 to 25). Owners come from the Harborlight cast.
+
+**The three policies (criterion 5)**
+
+Each policy fits on one page and is written for Elena, not for engineers. One outline that works (section names only):
+
+1. **Purpose:** why the policy exists, in one or two sentences.
+2. **Scope:** which systems, people, and repositories it covers.
+3. **Policy statements:** three to six rules, each written with "must" and each something a person could check.
+4. **Roles:** who owns the policy and who follows it (from the Harborlight cast).
+5. **How compliance is checked:** the control IDs in `controls.csv` that test these rules.
+6. **Exceptions:** how one is requested, and that it goes in the risk register.
+7. **Review date.**
+
+The link from policy rule to control ID to evidence file is what turns three documents into an audit trail.
 
 ## Rules of the Road
  
