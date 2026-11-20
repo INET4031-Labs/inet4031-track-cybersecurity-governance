@@ -226,6 +226,10 @@ The evidence file holds the command and its output, for example `kubectl get dep
 **Secrets (criterion 3)**
 
 - gitleaks changed its subcommands between versions. Run `gitleaks --help` on the installed version, scan the repo root so the full git history is included, write the report to a file, and use the redact option so no secret value lands in the report.
+- On current gitleaks releases, the full-history scan from the repo root is: `gitleaks git --redact --report-format json --report-path capstone/cybersecurity-governance/evidence/gitleaks-report.json .` If `gitleaks --help` on your version lists different subcommands, follow `--help`.
+- Many tutorials online use `gitleaks detect`, `gitleaks protect`, or flags such as `--path` and `--repo-path`. Those are from older versions: `detect` and `protect` still run but are deprecated, and the old flags fail. Use `gitleaks git` for history and `gitleaks dir` for a folder.
+- Exit code 1 means gitleaks found something, not that it broke. Each finding is your triage work for this criterion.
+- **Shared VM:** scan your own clone of the team repository. A teammate's folder is usually unreadable to you because of `umask 077`, and if it is readable, git refuses to work in a folder owned by another user ("detected dubious ownership"), which makes gitleaks fail too.
 
 **Access and network (criterion 4)**
 
